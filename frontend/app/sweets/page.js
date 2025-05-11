@@ -1,11 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { productApi } from "@/services/api"
+import { Search, ShoppingCart } from "lucide-react"
 import Link from "next/link"
-import { ShoppingCart, Search } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function SweetsPage() {
   const [cart, setCart] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     try {
@@ -16,6 +20,25 @@ export default function SweetsPage() {
     } catch (error) {
       console.error("Failed to load cart:", error)
     }
+  }, [])
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        const data = await productApi.getAllProducts()
+        const sweetProducts = Array.isArray(data)
+          ? data.filter(p => p.category === "sweet").sort((a, b) => Number(a.id) - Number(b.id))
+          : []
+        setProducts(sweetProducts)
+        setError(null)
+      } catch (err) {
+        setError("Failed to load products.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
   }, [])
 
   const addToCart = (product) => {
@@ -84,68 +107,35 @@ export default function SweetsPage() {
 
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Sweet Yogurts</h1>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {sweetProducts.map((product) => (
-            <div key={product.id} className="border-2 border-[#E8E0FF] rounded-lg p-4 bg-white">
-              <Link href={`/product/${product.id}`}>
-                <img
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
-                  className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-                />
-              </Link>
-              <h3 className="font-medium text-lg">{product.name}</h3>
-              <div className="text-sm text-gray-600 mb-1">{product.weight}</div>
-              <div className="font-bold mb-3">{product.price} THB</div>
-              <button
-                onClick={() => addToCart(product)}
-                className="w-full bg-[#A0C0FF] hover:bg-[#80A0FF] text-white py-2 px-4 rounded-full transition-colors"
-              >
-                Add to cart
-              </button>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div className="text-red-500">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <div key={product.id} className="border-2 border-[#E8E0FF] rounded-lg p-4 bg-white">
+                <Link href={`/product/${product.id}`}>
+                  <img
+                    src={product.image_url || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                  />
+                </Link>
+                <h3 className="font-medium text-lg">{product.name}</h3>
+                <div className="text-sm text-gray-600 mb-1">{product.weight || ""}</div>
+                <div className="font-bold mb-3">{product.price} THB</div>
+                <button
+                  onClick={() => addToCart(product)}
+                  className="w-full bg-[#A0C0FF] hover:bg-[#80A0FF] text-white py-2 px-4 rounded-full transition-colors"
+                >
+                  Add to cart
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   )
 }
-
-const sweetProducts = [
-  {
-    id: "2",
-    name: "Peanut butter Greek yogurt",
-    weight: "120 g",
-    price: "120.00",
-    image: "https://www.walderwellness.com/wp-content/uploads/2022/02/Peanut-Butter-Greek-Yogurt-Walder-Wellness-2.jpg",
-  },
-  {
-    id: "5",
-    name: "Chocolate Greek yogurt",
-    weight: "130 g",
-    price: "130.00",
-    image: "https://thefoodiediaries.co/wp-content/uploads/2023/04/img_7612-e1680534690722.jpg",
-  },
-  {
-    id: "8",
-    name: "Biscoff Greek yogurt",
-    weight: "130 g",
-    price: "130.00",
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT9Kq4AsXIJ1J1_f3ozJpvqxS9T2HJyiFrqvQ&s",
-  },
-  {
-    id: "9",
-    name: "Honey Greek yogurt",
-    weight: "120 g",
-    price: "140.00",
-    image: "https://paleoglutenfree.com/wp-content/uploads/2017/03/granola-parfait-14-678x1024.jpg",
-  },
-  {
-    id: "10",
-    name: "Caramel Greek yogurt",
-    weight: "140 g",
-    price: "150.00",
-    image: "https://au.easiyo.com/cdn/shop/products/GS.SaltedCaramel_2048x.jpg?v=1625018779",
-  },
-]
