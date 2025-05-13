@@ -6,7 +6,7 @@ services:
       cd frontend
       rm -rf node_modules .next
       npm install
-      npm install -D tailwindcss postcss autoprefixer
+      npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
       npx tailwindcss init -p
       npm run build
     startCommand: |
@@ -87,4 +87,53 @@ services:
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
       }
-// ... existing code ...
+
+  - type: web
+    name: yogreek-product-service
+    env: python
+    plan: free
+    buildCommand: |
+      cd ecommerce/product_service
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: |
+      cd ecommerce/product_service
+      python manage.py migrate
+      gunicorn product_service.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: product_service.settings
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yogreek-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: yogreek-product-service.onrender.com
+      - key: DEBUG
+        value: "False"
+
+  - type: web
+    name: yogreek-user-service
+    env: python
+    plan: free
+    buildCommand: cd ecommerce/user_service && pip install -r requirements.txt
+    startCommand: cd ecommerce/user_service && python manage.py migrate && gunicorn config.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yogreek-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: yogreek-user-service.onrender.com
+
+databases:
+  - name: yogreek-db
+    databaseName: yogreek
+    user: yogreek
+    plan: free 
