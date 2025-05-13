@@ -2,135 +2,89 @@ services:
   - type: web
     name: yogreek-frontend
     env: nginx
-    plan: free
     buildCommand: |
       cd frontend
-      rm -rf node_modules
-      rm -rf .next
+      rm -rf node_modules .next
       npm install
-      npm install @types/node @types/react @types/react-dom axios
+      npm install -D tailwindcss postcss autoprefixer
+      npx tailwindcss init -p
       npm run build
     startCommand: |
       cd frontend
       npm start
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: https://yogreek-product-service.onrender.com
       - key: PORT
         value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://yogreek-product-service.onrender.com
+      - key: NEXT_PUBLIC_USER_API_URL
+        value: https://yogreek-user-service.onrender.com
     healthCheckPath: /
     autoDeploy: true
     nginxConfig: |
-      server {
-          listen 80;
-          server_name localhost;
-
-          # Frontend
-          location / {
-              proxy_pass http://localhost:3000;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          # Product Service API
-          location /api/ {
-              proxy_pass https://yogreek-product-service.onrender.com/api/;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          # User Service API
-          location /user_api/ {
-              proxy_pass https://yogreek-user-service.onrender.com/api/;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          # Admin
-          location /admin/ {
-              proxy_pass https://yogreek-product-service.onrender.com/admin/;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          location /user_admin/ {
-              proxy_pass https://yogreek-user-service.onrender.com/admin/;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-          }
-
-          # Static files
-          location /static/ {
-              alias /app/staticfiles/;
-          }
-
-          location /user_static/ {
-              alias /app/user_staticfiles/;
-          }
-
-          location /media/ {
-              alias /app/media/;
-          }
+      location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
       }
 
-  - type: web
-    name: yogreek-product-service
-    env: python
-    plan: free
-    buildCommand: |
-      cd ecommerce/product_service
-      pip install -r requirements.txt
-      python manage.py collectstatic --noinput
-    startCommand: |
-      cd ecommerce/product_service
-      python manage.py migrate
-      gunicorn product_service.wsgi:application
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: product_service.settings
-      - key: DATABASE_URL
-        fromDatabase:
-          name: yogreek-db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
-      - key: ALLOWED_HOSTS
-        value: yogreek-product-service.onrender.com
-      - key: DEBUG
-        value: "False"
+      # Product Service API
+      location /api/ {
+        proxy_pass https://yogreek-product-service.onrender.com/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
 
-  - type: web
-    name: yogreek-user-service
-    env: python
-    plan: free
-    buildCommand: cd ecommerce/user_service && pip install -r requirements.txt
-    startCommand: cd ecommerce/user_service && python manage.py migrate && gunicorn config.wsgi:application
-    envVars:
-      - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: yogreek-db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
-      - key: ALLOWED_HOSTS
-        value: yogreek-user-service.onrender.com
+      # User Service API
+      location /user_api/ {
+        proxy_pass https://yogreek-user-service.onrender.com/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
 
-databases:
-  - name: yogreek-db
-    databaseName: yogreek
-    user: yogreek
-    plan: free 
+      # Product Service Admin
+      location /admin/ {
+        proxy_pass https://yogreek-product-service.onrender.com/admin/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
+
+      # User Service Admin
+      location /user_admin/ {
+        proxy_pass https://yogreek-user-service.onrender.com/admin/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
+
+      # Static files
+      location /static/ {
+        alias /opt/render/project/src/frontend/.next/static/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+      }
+
+      # Media files
+      location /media/ {
+        proxy_pass https://yogreek-product-service.onrender.com/media/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+      }
+// ... existing code ...
