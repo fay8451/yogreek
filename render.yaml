@@ -1,7 +1,7 @@
 services:
   - type: web
     name: yogreek-frontend
-    env: node
+    env: nginx
     plan: free
     buildCommand: |
       cd frontend
@@ -19,9 +19,71 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://yogreek-product-service.onrender.com
       - key: PORT
-        value: 10000
+        value: 3000
     healthCheckPath: /
     autoDeploy: true
+    nginxConfig: |
+      server {
+          listen 80;
+          server_name localhost;
+
+          # Frontend
+          location / {
+              proxy_pass http://localhost:3000;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          # Product Service API
+          location /api/ {
+              proxy_pass https://yogreek-product-service.onrender.com/api/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          # User Service API
+          location /user_api/ {
+              proxy_pass https://yogreek-user-service.onrender.com/api/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          # Admin
+          location /admin/ {
+              proxy_pass https://yogreek-product-service.onrender.com/admin/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          location /user_admin/ {
+              proxy_pass https://yogreek-user-service.onrender.com/admin/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          # Static files
+          location /static/ {
+              alias /app/staticfiles/;
+          }
+
+          location /user_static/ {
+              alias /app/user_staticfiles/;
+          }
+
+          location /media/ {
+              alias /app/media/;
+          }
+      }
 
   - type: web
     name: yogreek-product-service
@@ -71,4 +133,4 @@ databases:
   - name: yogreek-db
     databaseName: yogreek
     user: yogreek
-    plan: free
+    plan: free 
