@@ -5,16 +5,13 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   output: 'standalone',
-  experimental: {
-    appDir: true,
-  },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.join(__dirname, './'),
     };
     return config;
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
