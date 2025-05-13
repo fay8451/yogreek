@@ -1,73 +1,67 @@
 'use client';
 
-import { CartItem, Product } from '@/types';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   total: number;
-  isLoading: boolean;
-  error: string | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem('cart');
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
-      }
-    } catch (err) {
-      console.error('Failed to load cart from localStorage:', err);
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setItems(JSON.parse(savedCart));
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('cart', JSON.stringify(items));
-    } catch (err) {
-      console.error('Failed to save cart to localStorage:', err);
-    }
+    localStorage.setItem('cart', JSON.stringify(items));
+    const newTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    setTotal(newTotal);
   }, [items]);
 
-  const addItem = (product: Product, quantity: number) => {
+  const addItem = (item: CartItem) => {
     setItems(currentItems => {
-      const existingItem = currentItems.find(item => item.product.id === product.id);
+      const existingItem = currentItems.find(i => i.id === item.id);
       if (existingItem) {
-        return currentItems.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+        return currentItems.map(i =>
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...currentItems, { product, quantity }];
+      return [...currentItems, { ...item, quantity: 1 }];
     });
   };
 
-  const removeItem = (productId: string) => {
-    setItems(currentItems => currentItems.filter(item => item.product.id !== productId));
+  const removeItem = (id: string) => {
+    setItems(currentItems => currentItems.filter(item => item.id !== id));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId);
+  const updateQuantity = (id: string, quantity: number) => {
+    if (quantity < 1) {
+      removeItem(id);
       return;
     }
     setItems(currentItems =>
       currentItems.map(item =>
-        item.product.id === productId ? { ...item, quantity } : item
+        item.id === id ? { ...item, quantity } : item
       )
     );
   };
@@ -75,11 +69,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => {
     setItems([]);
   };
-
-  const total = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
 
   return (
     <CartContext.Provider
@@ -90,8 +79,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         clearCart,
         total,
-        isLoading,
-        error,
       }}
     >
       {children}
@@ -105,4 +92,4 @@ export function useCart() {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-} 
+}
