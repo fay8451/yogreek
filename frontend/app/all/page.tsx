@@ -4,7 +4,7 @@ import { Product } from "@/types";
 import { Check, Search, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useCart } from "../cart-provider";
+import { useCart } from "@/app/cart-provider";
 
 export default function AllProducts() {
   const [products, setProducts] = useState<Product[]>([]);
