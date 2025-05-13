@@ -50,7 +50,7 @@ docker-compose exec product_service python manage.py makemigrations
 docker-compose exec product_service python manage.py migrate
 docker-compose exec product_service python manage.py createsuperuser
 
-# User Service Setup
+# User Service Setup (still not perfect)
 docker-compose exec user_service python manage.py makemigrations
 docker-compose exec user_service python manage.py migrate
 docker-compose exec user_service python manage.py createsuperuser
