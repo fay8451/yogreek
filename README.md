@@ -35,7 +35,7 @@ yogreek-main/
 1. Clone the repository
 ```bash
 git clone https://github.com/fay8451/yogreek.git
-cd yogreek-main
+cd yogreek
 ```
 
 2. Build and start the services using Docker Compose
@@ -59,7 +59,6 @@ docker-compose exec user_service python manage.py createsuperuser
 4. Configure Nginx
 ```bash
 # Run Nginx with the provided configuration
-nginx -c /Users/sgot/Downloads/yogreek-main/ecommerce/nginx.conf
 ```
 
 5. For frontend development
